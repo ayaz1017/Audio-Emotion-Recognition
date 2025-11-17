@@ -1,0 +1,7 @@
+time,emotion,confidence
+0s-3s,disgust,0.8856
+3s-6s,disgust,0.9663
+6s-9s,sad,0.9361
+9s-12s,sad,0.7626
+12s-15s,disgust,0.999
+15s-18s,sad,0.9006

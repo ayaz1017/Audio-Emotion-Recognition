@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Voice Analysis</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0f0f0f; /* Clean industrial black */
+            color: #e5e7eb;      /* Soft white */
+        }
+
+        header {
+            background: #181818;
+            padding: 18px 30px;
+            color: #f8f9fa;
+            font-size: 20px;
+            font-weight: 600;
+            border-bottom: 1px solid #303030;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 35px auto;
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #2b2b2b;
+        }
+
+        h2 {
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background: #1d4ed8;
+        }
+
+        .emotion-display {
+            font-size: 18px;
+            margin-top: 15px;
+            padding: 12px;
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 6px;
+            color: #93c5fd;
+        }
+
+        .upload-box {
+            margin-top: 35px;
+            padding: 20px;
+            background: #111111;
+            border: 1px solid #2d2d2d;
+            border-radius: 8px;
+        }
+
+        input[type="file"] {
+            padding: 8px;
+            color: #e5e7eb;
+        }
+
+        input[type="submit"] {
+            margin-top: 12px;
+            padding: 10px 18px;
+            border: none;
+            background: #2563eb;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background: #1d4ed8;
+        }
+
+        canvas {
+            margin-top: 25px;
+            width: 100%;
+            height: 320px;
+            border: 1px solid #272727;
+            background: #0d0d0d;
+            border-radius: 6px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<header>Real-Time Voice Analysis Dashboard</header>
+
+<div class="container">
+
+    <h2>Live Voice Capture</h2>
+
+    <button class="btn" onclick="startRecording()">Start Recording</button>
+    <button class="btn" onclick="stopRecording()">Stop</button>
+
+    <div class="emotion-display" id="emotionText">
+        Emotion: Neutral (0.00)
+    </div>
+
+    <canvas id="emotionChart"></canvas>
+
+    <div class="upload-box">
+        <h3>Upload Audio for Full Analysis</h3>
+
+        <form action="/predict_upload" method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".mp3,.wav" required>
+            <br><br>
+            <input type="submit" value="Analyze">
+        </form>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    let ctx = document.getElementById("emotionChart").getContext("2d");
+
+    let chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                label: "Voice Amplitude",
+                data: [],
+                borderColor: "#60a5fa",
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.2
+            }]
+        },
+        options: {
+            animation: false,
+            responsive: true,
+            scales: {
+                x: {
+                    ticks: { color: "#9ca3af" },
+                    grid: { color: "#1f1f1f" }
+                },
+                y: {
+                    min: -1,
+                    max: 1,
+                    ticks: { color: "#9ca3af" },
+                    grid: { color: "#1f1f1f" }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: { color: "#e5e7eb" }
+                }
+            }
+        }
+    });
+
+    let audioContext, analyser, microphone, dataArray, animationId;
+    let recording = false;
+
+    async function startRecording() {
+        recording = true;
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        audioContext = new AudioContext();
+        analyser = audioContext.createAnalyser();
+        microphone = audioContext.createMediaStreamSource(stream);
+        microphone.connect(analyser);
+
+        analyser.fftSize = 256;
+        dataArray = new Float32Array(analyser.fftSize);
+
+        updateGraph();
+    }
+
+    function updateGraph() {
+        if (!recording) return;
+
+        analyser.getFloatTimeDomainData(dataArray);
+        let avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+
+        chart.data.labels.push("");
+        chart.data.datasets[0].data.push(avg);
+
+        if (chart.data.labels.length > 150)
+            chart.data.labels.shift(),
+            chart.data.datasets[0].data.shift();
+
+        chart.update();
+        animationId = requestAnimationFrame(updateGraph);
+    }
+
+    function stopRecording() {
+        recording = false;
+        cancelAnimationFrame(animationId);
+    }
+</script>
+
+</body>
+</html>

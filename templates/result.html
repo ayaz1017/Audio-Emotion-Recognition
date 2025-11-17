@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emotion Detection Result</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Inter, sans-serif;
+            background: linear-gradient(135deg, #0b1728, #06101d);
+            color: white;
+            padding: 35px;
+        }
+
+        .container {
+            max-width: 900px;
+            background: rgba(255,255,255,0.06);
+            margin: auto;
+            padding: 26px;
+            border-radius: 18px;
+            backdrop-filter: blur(14px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .cards {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.03);
+            padding: 14px 18px;
+            border-radius: 12px;
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .label { font-size: 14px; color: #8bbfdd; }
+        .value { font-size: 20px; font-weight: 700; margin-top: 6px; color: #00eaff; }
+
+        #chartContainer {
+            margin-top: 18px;
+            background: rgba(255,255,255,0.03);
+            padding: 14px;
+            border-radius: 12px;
+        }
+
+        canvas { width: 100% !important; height: 300px !important; }
+
+        .controls {
+            display:flex;
+            gap:10px;
+            justify-content:flex-end;
+            margin-top:10px;
+        }
+
+        .btn {
+            background:#00bcd4;
+            color:#08121f;
+            padding:10px 14px;
+            border-radius:10px;
+            text-decoration:none;
+            font-weight:700;
+            cursor:pointer;
+            border:none;
+        }
+
+        .timeline-table {
+            margin-top: 14px;
+            width:100%;
+            border-collapse: collapse;
+            font-size:14px;
+        }
+
+        .timeline-table th, .timeline-table td {
+            padding:8px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            text-align:left;
+        }
+
+        .no-data { color:#bbb; text-align:center; padding:18px 0; }
+        .back-btn { display:inline-block; margin-top:12px; background:transparent; color:#00eaff; text-decoration:none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎧 Emotion Detection Result</h1>
+
+        <div class="cards">
+            <div class="card">
+                <div class="label">Predicted Emotion</div>
+                <div class="value">{{ prediction_text }}</div>
+            </div>
+
+            <div class="card">
+                <div class="label">Confidence Score</div>
+                <div class="value">{{ prediction_conf }}</div>
+            </div>
+
+            <div class="card">
+                <div class="label">Chunks Processed</div>
+                <div class="value" id="chunksCount">-</div>
+            </div>
+        </div>
+
+        <div id="chartContainer">
+            <div class="controls">
+                <button class="btn" id="downloadCsvBtn">⬇ Download Log (CSV)</button>
+                <a href="/" class="btn" style="background:#009fb3">⬅ Back</a>
+            </div>
+
+            <canvas id="timelineChart"></canvas>
+
+            <div id="timelineArea">
+                <!-- Table will be populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // emotion_timeline is rendered by Flask as a list of objects:
+        // [{start:0.0,end:3.0,emotion:"happy",confidence:0.83}, ...]
+        const timeline = {{ emotion_timeline|tojson | safe }};
+
+        const chunksCountEl = document.getElementById("chunksCount");
+        chunksCountEl.innerText = timeline.length;
+
+        // Build labels like "0.0 - 3.0s"
+        const labels = timeline.map(item => `${item.start.toFixed(1)}s - ${item.end.toFixed(1)}s`);
+        const confidences = timeline.map(item => Number(item.confidence.toFixed(3)));
+        const emotions = timeline.map(item => item.emotion);
+
+        // Chart: confidence over time with emotion labels in tooltips
+        const ctx = document.getElementById("timelineChart").getContext("2d");
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Confidence',
+                    data: confidences,
+                    borderColor: '#00eaff',
+                    borderWidth: 2,
+                    tension: 0.25,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: (ctx) => ctx[0].label,
+                            label: (ctx) => {
+                                const i = ctx.dataIndex;
+                                return `Emotion: ${emotions[i]} — Confidence: ${confidences[i].toFixed(3)}`;
+                            }
+                        }
+                    },
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 1,
+                        title: { display: true, text: 'Confidence (0-1)' }
+                    }
+                }
+            }
+        });
+
+        // Render simple timeline table
+        function renderTable() {
+            const container = document.getElementById("timelineArea");
+            if (!timeline || timeline.length === 0) {
+                container.innerHTML = '<div class="no-data">No timeline data available.</div>';
+                return;
+            }
+
+            let html = '<table class="timeline-table"><thead><tr><th>#</th><th>Time (s)</th><th>Emotion</th><th>Confidence</th></tr></thead><tbody>';
+            timeline.forEach((t, i) => {
+                html += `<tr>
+                    <td>${i+1}</td>
+                    <td>${t.start.toFixed(1)} - ${t.end.toFixed(1)}</td>
+                    <td>${t.emotion}</td>
+                    <td>${t.confidence.toFixed(3)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        renderTable();
+
+        // Download CSV
+        document.getElementById("downloadCsvBtn").addEventListener("click", () => {
+            if (!timeline || timeline.length === 0) {
+                alert("No timeline data to download.");
+                return;
+            }
+
+            let csv = "index,start,end,emotion,confidence\n";
+            timeline.forEach((t, i) => {
+                csv += `${i+1},${t.start},${t.end},"${t.emotion}",${t.confidence}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const ts = new Date().toISOString().replace(/[:.]/g, "-");
+            a.download = `emotion_timeline_${ts}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>

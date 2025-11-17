@@ -1,0 +1,15 @@
+{
+  "file": "20251115153623_WhatsApp Ptt 2025-10-15 at 11.46.22 AM.wav",
+  "predicted_emotion": "disgust",
+  "predicted_confidence": 0.999984622001648,
+  "timeline": [
+    {
+      "time": "0s-3s",
+      "emotion": "disgust",
+      "confidence": 1.0
+    }
+  ],
+  "counts": {
+    "disgust": 1
+  }
+}

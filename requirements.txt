@@ -1,0 +1,7 @@
+Flask
+tensorflow
+librosa
+numpy
+pickle-mixin
+resampy
+
