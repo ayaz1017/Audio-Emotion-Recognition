@@ -2,22 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Psychiatric Voice Analysis</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Voice Analysis</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         body {
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: #0f0f0f; /* Clean industrial black */
-            color: #e5e7eb;      /* Soft white */
+            background: #0f0f0f;
+            color: #e5e7eb;
         }
 
         header {
             background: #181818;
             padding: 18px 30px;
-            color: #f8f9fa;
             font-size: 20px;
             font-weight: 600;
             border-bottom: 1px solid #303030;
@@ -32,19 +33,36 @@
             border: 1px solid #2b2b2b;
         }
 
-        h2 {
+        h2, h3 {
             color: #ffffff;
-            margin-bottom: 10px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #9ca3af;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #2d2d2d;
+            background: #0d0d0d;
+            color: #e5e7eb;
+            margin-bottom: 15px;
         }
 
         .btn {
             background: #2563eb;
             color: white;
             padding: 10px 20px;
-            border: none;
             border-radius: 6px;
-            font-size: 15px;
             cursor: pointer;
+            border: none;
+            font-size: 15px;
             margin-right: 10px;
         }
 
@@ -53,86 +71,88 @@
         }
 
         .emotion-display {
-            font-size: 18px;
-            margin-top: 15px;
             padding: 12px;
+            margin-top: 15px;
             background: #111827;
+            border-radius: 6px;
             border: 1px solid #1f2937;
-            border-radius: 6px;
             color: #93c5fd;
-        }
-
-        .upload-box {
-            margin-top: 35px;
-            padding: 20px;
-            background: #111111;
-            border: 1px solid #2d2d2d;
-            border-radius: 8px;
-        }
-
-        input[type="file"] {
-            padding: 8px;
-            color: #e5e7eb;
-        }
-
-        input[type="submit"] {
-            margin-top: 12px;
-            padding: 10px 18px;
-            border: none;
-            background: #2563eb;
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        input[type="submit"]:hover {
-            background: #1d4ed8;
+            font-size: 16px;
         }
 
         canvas {
             margin-top: 25px;
             width: 100%;
             height: 320px;
-            border: 1px solid #272727;
-            background: #0d0d0d;
             border-radius: 6px;
+            background: #0d0d0d;
             padding: 10px;
+            border: 1px solid #272727;
+        }
+
+        .upload-box {
+            background: #111111;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #2d2d2d;
+            margin-top: 35px;
+        }
+
+        .note {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #9ca3af;
         }
     </style>
 </head>
+
 <body>
 
-<header>Real-Time Voice Analysis Dashboard</header>
+<header>🧠 Psychiatric Voice Analysis System</header>
 
 <div class="container">
 
-    <h2>Live Voice Capture</h2>
+    <h3>Patient Information</h3>
+    <label for="patient_id">Patient ID</label>
+    <input type="text" id="patient_id" placeholder="e.g. P001" required>
 
-    <button class="btn" onclick="startRecording()">Start Recording</button>
-    <button class="btn" onclick="stopRecording()">Stop</button>
+    <h2>Live Voice Capture (Clinical Session)</h2>
+
+    <button class="btn" onclick="beginRec()">Start Recording</button>
+    <button class="btn" onclick="haltRec()">Stop & Analyze</button>
 
     <div class="emotion-display" id="emotionText">
-        Emotion: Neutral (0.00)
+        Awaiting recording…
     </div>
 
     <canvas id="emotionChart"></canvas>
 
     <div class="upload-box">
-        <h3>Upload Audio for Full Analysis</h3>
+        <h3>OR Upload Audio (Optional)</h3>
 
         <form action="/predict_upload" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".mp3,.wav" required>
-            <br><br>
-            <input type="submit" value="Analyze">
+            <input type="hidden" name="patient_id" id="upload_patient_id">
+
+            <label>Audio File (.wav / .mp3)</label>
+            <input type="file" name="file" accept=".wav,.mp3" required>
+
+            <input type="submit" class="btn" value="Analyze Uploaded Audio">
         </form>
+    </div>
+
+    <div class="note">
+        • Live recording automatically generates a full psychiatric report.<br>
+        • Emotion inference is performed after recording ends.<br>
+        • No diagnosis is provided.
     </div>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-    let ctx = document.getElementById("emotionChart").getContext("2d");
+    // ----------------------------
+    // GRAPH SETUP
+    // ----------------------------
+    const ctx = document.getElementById("emotionChart").getContext("2d");
 
     let chart = new Chart(ctx, {
         type: "line",
@@ -148,67 +168,111 @@
             }]
         },
         options: {
-            animation: false,
             responsive: true,
+            animation: false,
             scales: {
-                x: {
-                    ticks: { color: "#9ca3af" },
-                    grid: { color: "#1f1f1f" }
-                },
-                y: {
-                    min: -1,
-                    max: 1,
-                    ticks: { color: "#9ca3af" },
-                    grid: { color: "#1f1f1f" }
-                }
-            },
-            plugins: {
-                legend: {
-                    labels: { color: "#e5e7eb" }
-                }
+                y: { min: -1, max: 1 }
             }
         }
     });
 
-    let audioContext, analyser, microphone, dataArray, animationId;
-    let recording = false;
+    // ----------------------------
+    // AUDIO VARIABLES
+    // ----------------------------
+    let audioCtx, analyserNode, micSrc, floatData, animLoop;
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
 
-    async function startRecording() {
-        recording = true;
+    // ----------------------------
+    // START RECORDING
+    // ----------------------------
+    async function beginRec() {
+        const patientId = document.getElementById("patient_id").value;
+
+        if (!patientId) {
+            alert("Please enter Patient ID before recording.");
+            return;
+        }
+
+        document.getElementById("upload_patient_id").value = patientId;
+        document.getElementById("emotionText").innerText = "Recording in progress…";
 
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        audioContext = new AudioContext();
-        analyser = audioContext.createAnalyser();
-        microphone = audioContext.createMediaStreamSource(stream);
-        microphone.connect(analyser);
+        audioCtx = new AudioContext();
+        analyserNode = audioCtx.createAnalyser();
+        micSrc = audioCtx.createMediaStreamSource(stream);
+        micSrc.connect(analyserNode);
 
-        analyser.fftSize = 256;
-        dataArray = new Float32Array(analyser.fftSize);
+        analyserNode.fftSize = 256;
+        floatData = new Float32Array(analyserNode.fftSize);
 
-        updateGraph();
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.start();
+
+        isRecording = true;
+        drawWaveform();
     }
 
-    function updateGraph() {
-        if (!recording) return;
+    // ----------------------------
+    // DRAW WAVEFORM
+    // ----------------------------
+    function drawWaveform() {
+        if (!isRecording) return;
 
-        analyser.getFloatTimeDomainData(dataArray);
-        let avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        analyserNode.getFloatTimeDomainData(floatData);
+
+        let avg = floatData.reduce((a, b) => a + b, 0) / floatData.length;
 
         chart.data.labels.push("");
         chart.data.datasets[0].data.push(avg);
 
-        if (chart.data.labels.length > 150)
-            chart.data.labels.shift(),
+        if (chart.data.labels.length > 150) {
+            chart.data.labels.shift();
             chart.data.datasets[0].data.shift();
+        }
 
         chart.update();
-        animationId = requestAnimationFrame(updateGraph);
+        animLoop = requestAnimationFrame(drawWaveform);
     }
 
-    function stopRecording() {
-        recording = false;
-        cancelAnimationFrame(animationId);
+    // ----------------------------
+    // STOP & ANALYZE
+    // ----------------------------
+    function haltRec() {
+        if (!mediaRecorder) return;
+
+        isRecording = false;
+        cancelAnimationFrame(animLoop);
+        mediaRecorder.stop();
+
+        document.getElementById("emotionText").innerText =
+            "Analyzing session… Please wait.";
+
+        mediaRecorder.onstop = async () => {
+            const patientId = document.getElementById("patient_id").value;
+
+            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            const formData = new FormData();
+
+            formData.append("patient_id", patientId);
+            formData.append("file", audioBlob, "recorded_session.wav");
+
+            const response = await fetch("/predict_upload", {
+                method: "POST",
+                body: formData
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                alert(await response.text());
+            }
+        };
     }
 </script>
 
