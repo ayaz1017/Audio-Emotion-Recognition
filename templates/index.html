@@ -5,156 +5,96 @@
     <title>Psychiatric Voice Analysis</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: #0f0f0f;
-            color: #e5e7eb;
-        }
-
-        header {
-            background: #181818;
-            padding: 18px 30px;
-            font-size: 20px;
-            font-weight: 600;
-            border-bottom: 1px solid #303030;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 35px auto;
-            background: #1a1a1a;
-            padding: 30px;
-            border-radius: 8px;
-            border: 1px solid #2b2b2b;
-        }
-
-        h2, h3 {
-            color: #ffffff;
-        }
-
-        label {
-            font-size: 14px;
-            color: #9ca3af;
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        input[type="text"],
-        input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #2d2d2d;
-            background: #0d0d0d;
-            color: #e5e7eb;
-            margin-bottom: 15px;
-        }
-
-        .btn {
-            background: #2563eb;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            border: none;
-            font-size: 15px;
-            margin-right: 10px;
-        }
-
-        .btn:hover {
-            background: #1d4ed8;
-        }
-
-        .emotion-display {
-            padding: 12px;
-            margin-top: 15px;
-            background: #111827;
-            border-radius: 6px;
-            border: 1px solid #1f2937;
-            color: #93c5fd;
-            font-size: 16px;
-        }
-
-        canvas {
-            margin-top: 25px;
-            width: 100%;
-            height: 320px;
-            border-radius: 6px;
-            background: #0d0d0d;
-            padding: 10px;
-            border: 1px solid #272727;
-        }
-
-        .upload-box {
-            background: #111111;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #2d2d2d;
-            margin-top: 35px;
-        }
-
-        .note {
-            margin-top: 20px;
-            font-size: 13px;
-            color: #9ca3af;
-        }
-    </style>
 </head>
 
-<body>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
 
-<header>🧠 Psychiatric Voice Analysis System</header>
+<header class="bg-gray-800 border-b border-gray-700 px-6 py-4 text-xl font-semibold">
+    🧠 Psychiatric Voice Analysis System
+</header>
 
-<div class="container">
+<div class="max-w-5xl mx-auto px-6 py-8">
 
-    <h3>Patient Information</h3>
-    <label for="patient_id">Patient ID</label>
-    <input type="text" id="patient_id" placeholder="e.g. P001" required>
-
-    <h2>Live Voice Capture (Clinical Session)</h2>
-
-    <button class="btn" onclick="beginRec()">Start Recording</button>
-    <button class="btn" onclick="haltRec()">Stop & Analyze</button>
-
-    <div class="emotion-display" id="emotionText">
-        Awaiting recording…
+    <!-- PATIENT ID -->
+    <div class="mb-8">
+        <label class="block text-sm text-gray-400 mb-1">Patient ID</label>
+        <input
+            type="text"
+            id="patient_id"
+            placeholder="e.g. P001"
+            class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+        >
     </div>
 
-    <canvas id="emotionChart"></canvas>
+    <!-- LIVE RECORDING -->
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-10">
+        <h2 class="text-xl font-semibold mb-4">
+            🎙 Live Voice Capture (Clinical Session)
+        </h2>
 
-    <div class="upload-box">
-        <h3>OR Upload Audio (Optional)</h3>
+        <div class="flex gap-4 mb-4">
+            <button onclick="beginRec()"
+                class="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg font-semibold">
+                Start Recording
+            </button>
 
-        <form action="/predict_upload" method="POST" enctype="multipart/form-data">
+            <button onclick="haltRec()"
+                class="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg font-semibold">
+                Stop & Analyze
+            </button>
+        </div>
+
+        <div id="emotionText"
+            class="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-blue-300 mb-4">
+            Awaiting recording…
+        </div>
+
+        <canvas id="emotionChart" class="w-full h-72"></canvas>
+    </div>
+
+    <!-- UPLOAD AUDIO -->
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-10">
+        <h2 class="text-xl font-semibold mb-4">
+            ⬆ Upload Audio (Optional)
+        </h2>
+
+        <form action="/predict_upload" method="POST" enctype="multipart/form-data" id="uploadForm">
             <input type="hidden" name="patient_id" id="upload_patient_id">
 
-            <label>Audio File (.wav / .mp3)</label>
-            <input type="file" name="file" accept=".wav,.mp3" required>
+            <label class="block text-sm text-gray-400 mb-1">
+                Audio File (.wav / .mp3)
+            </label>
 
-            <input type="submit" class="btn" value="Analyze Uploaded Audio">
+            <input type="file" name="file" accept=".wav,.mp3" required
+                class="block w-full mb-4 text-sm">
+
+            <button type="submit"
+                class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold">
+                Analyze Uploaded Audio
+            </button>
         </form>
     </div>
 
-    <div class="note">
+    <p class="text-sm text-gray-400">
         • Live recording automatically generates a full psychiatric report.<br>
-        • Emotion inference is performed after recording ends.<br>
-        • No diagnosis is provided.
-    </div>
+        • Emotion inference is performed after recording completes.<br>
+        • This system is for research and educational use only.
+    </p>
 
 </div>
 
 <script>
-    // ----------------------------
-    // GRAPH SETUP
-    // ----------------------------
+    /* ==============================
+       WAVEFORM GRAPH
+    ============================== */
     const ctx = document.getElementById("emotionChart").getContext("2d");
 
-    let chart = new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: "line",
         data: {
             labels: [],
@@ -170,33 +110,31 @@
         options: {
             responsive: true,
             animation: false,
-            scales: {
-                y: { min: -1, max: 1 }
-            }
+            plugins: { legend: { display: false } },
+            scales: { y: { min: -1, max: 1 } }
         }
     });
 
-    // ----------------------------
-    // AUDIO VARIABLES
-    // ----------------------------
+    /* ==============================
+       AUDIO VARIABLES
+    ============================== */
     let audioCtx, analyserNode, micSrc, floatData, animLoop;
     let mediaRecorder;
     let audioChunks = [];
     let isRecording = false;
 
-    // ----------------------------
-    // START RECORDING
-    // ----------------------------
+    /* ==============================
+       START RECORDING
+    ============================== */
     async function beginRec() {
-        const patientId = document.getElementById("patient_id").value;
-
-        if (!patientId) {
+        const pid = document.getElementById("patient_id").value;
+        if (!pid) {
             alert("Please enter Patient ID before recording.");
             return;
         }
 
-        document.getElementById("upload_patient_id").value = patientId;
-        document.getElementById("emotionText").innerText = "Recording in progress…";
+        document.getElementById("emotionText").innerText =
+            "Recording in progress…";
 
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -210,23 +148,18 @@
 
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
-
         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
         mediaRecorder.start();
 
         isRecording = true;
-        drawWaveform();
+        drawWave();
     }
 
-    // ----------------------------
-    // DRAW WAVEFORM
-    // ----------------------------
-    function drawWaveform() {
+    function drawWave() {
         if (!isRecording) return;
 
         analyserNode.getFloatTimeDomainData(floatData);
-
-        let avg = floatData.reduce((a, b) => a + b, 0) / floatData.length;
+        const avg = floatData.reduce((a, b) => a + b, 0) / floatData.length;
 
         chart.data.labels.push("");
         chart.data.datasets[0].data.push(avg);
@@ -237,12 +170,12 @@
         }
 
         chart.update();
-        animLoop = requestAnimationFrame(drawWaveform);
+        animLoop = requestAnimationFrame(drawWave);
     }
 
-    // ----------------------------
-    // STOP & ANALYZE
-    // ----------------------------
+    /* ==============================
+       STOP & SEND FOR ANALYSIS
+    ============================== */
     function haltRec() {
         if (!mediaRecorder) return;
 
@@ -254,27 +187,44 @@
             "Analyzing session… Please wait.";
 
         mediaRecorder.onstop = async () => {
-            const patientId = document.getElementById("patient_id").value;
+            const pid = document.getElementById("patient_id").value;
 
-            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            const blob = new Blob(audioChunks, { type: "audio/wav" });
             const formData = new FormData();
 
-            formData.append("patient_id", patientId);
-            formData.append("file", audioBlob, "recorded_session.wav");
+            formData.append("patient_id", pid);
+            formData.append("file", blob, "recorded_session.wav");
 
-            const response = await fetch("/predict_upload", {
+            const res = await fetch("/predict_upload", {
                 method: "POST",
                 body: formData
             });
 
-            if (response.redirected) {
-                window.location.href = response.url;
+            if (res.redirected) {
+                window.location.href = res.url;
             } else {
-                alert(await response.text());
+                alert(await res.text());
             }
         };
     }
+
+    /* ==============================
+       UPLOAD FORM FIX (PATIENT ID)
+    ============================== */
+    document.getElementById("uploadForm")
+        .addEventListener("submit", function (e) {
+
+            const pid = document.getElementById("patient_id").value;
+            if (!pid) {
+                alert("Please enter Patient ID before uploading audio.");
+                e.preventDefault();
+                return;
+            }
+
+            document.getElementById("upload_patient_id").value = pid;
+        });
 </script>
 
 </body>
 </html>
+
