@@ -5,276 +5,194 @@
     <title>Psychiatric Session Report</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        body{
-            background:#0f0f0f;
-            color:#e5e7eb;
-            font-family:'Segoe UI', Tahoma, sans-serif;
-            padding:25px;
-        }
-
-        .container{
-            max-width:1100px;
-            margin:auto;
-            background:#1a1a1a;
-            padding:30px;
-            border-radius:8px;
-            border:1px solid #2b2b2b;
-        }
-
-        h1{
-            text-align:center;
-            margin-bottom:25px;
-            color:#ffffff;
-        }
-
-        h3{
-            margin-top:30px;
-            color:#ffffff;
-        }
-
-        .cards{
-            display:flex;
-            flex-wrap:wrap;
-            gap:15px;
-            justify-content:center;
-            margin-bottom:20px;
-        }
-
-        .card{
-            background:#111827;
-            border:1px solid #1f2937;
-            border-radius:8px;
-            padding:16px 20px;
-            min-width:220px;
-            text-align:center;
-        }
-
-        .label{
-            font-size:14px;
-            color:#9ca3af;
-        }
-
-        .value{
-            font-size:22px;
-            font-weight:700;
-            color:#60a5fa;
-            margin-top:8px;
-        }
-
-        .notice{
-            background:#0d0d0d;
-            border:1px solid #2d2d2d;
-            padding:14px;
-            border-radius:6px;
-            margin-top:18px;
-            font-size:14px;
-            line-height:1.5;
-            color:#d1d5db;
-        }
-
-        table{
-            width:100%;
-            border-collapse:collapse;
-            margin-top:15px;
-            font-size:14px;
-        }
-
-        th, td{
-            padding:10px 12px;
-            border-bottom:1px solid #2d2d2d;
-            text-align:left;
-        }
-
-        th{
-            color:#93c5fd;
-            background:#0d0d0d;
-        }
-
-        canvas{
-            width:100%!important;
-            height:320px!important;
-            background:#0d0d0d;
-            padding:10px;
-            border-radius:6px;
-            border:1px solid #272727;
-            margin-top:15px;
-        }
-
-        .back-btn{
-            display:inline-block;
-            margin-top:25px;
-            background:#2563eb;
-            padding:10px 18px;
-            border-radius:6px;
-            color:white;
-            text-decoration:none;
-            font-weight:600;
-        }
-
-        .back-btn:hover{
-            background:#1d4ed8;
-        }
-    </style>
 </head>
 
-<body>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
 
-<div class="container">
+<div class="max-w-7xl mx-auto px-6 py-8">
 
-<h1>🧠 Psychiatric Session Report</h1>
-
-<div class="notice">
-<b>Patient ID:</b> {{ patient_id }}
-</div>
-
-<!-- SUMMARY CARDS -->
-<div class="cards">
-    <div class="card">
-        <div class="label">Dominant Emotion</div>
-        <div class="value">{{ prediction_text }}</div>
+    <!-- HEADER -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white">
+            🧠 Psychiatric Session Report
+        </h1>
+        <p class="text-sm text-gray-400 mt-1">
+            Patient ID: <span class="font-semibold text-blue-400">{{ patient_id }}</span>
+        </p>
     </div>
 
-    <div class="card">
-        <div class="label">Average Confidence</div>
-        <div class="value">{{ prediction_conf }}</div>
+    <!-- SUMMARY CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-5">
+            <p class="text-sm text-gray-400">Dominant Emotion</p>
+            <p class="text-2xl font-bold text-blue-400 mt-2">
+                {{ prediction_text }}
+            </p>
+        </div>
+
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-5">
+            <p class="text-sm text-gray-400">Average Confidence</p>
+            <p class="text-2xl font-bold text-green-400 mt-2">
+                {{ prediction_conf }}
+            </p>
+        </div>
+
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-5">
+            <p class="text-sm text-gray-400">Emotional Instability</p>
+            <p class="text-2xl font-bold text-red-400 mt-2">
+                {{ instability }}
+            </p>
+        </div>
+
     </div>
 
-    <div class="card">
-        <div class="label">Emotional Instability</div>
-        <div class="value">{{ instability }}</div>
+ 
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">
+            📊 Emotion Confidence Timeline
+        </h2>
+        <canvas id="timelineChart" class="w-full h-80"></canvas>
     </div>
-</div>
 
-<!-- SPEECH BIOMARKERS -->
-<h3>🗣️ Speech Biomarkers</h3>
-<table>
-    <tr>
-        <th>Metric</th>
-        <th>Value</th>
-        <th>Clinical Interpretation</th>
-    </tr>
-    <tr>
-        <td>Speech Rate</td>
-        <td>{{ speech.speech_rate }}</td>
-        <td>Slow → Depression | Fast → Anxiety / Mania</td>
-    </tr>
-    <tr>
-        <td>Silence Ratio</td>
-        <td>{{ speech.silence_ratio }}</td>
-        <td>High → Withdrawal / Low engagement</td>
-    </tr>
-    <tr>
-        <td>RMS Energy</td>
-        <td>{{ speech.rms_energy }}</td>
-        <td>Low → Flat affect</td>
-    </tr>
-    <tr>
-        <td>Pitch Variability</td>
-        <td>{{ speech.pitch_variability }}</td>
-        <td>Low → Emotional blunting</td>
-    </tr>
-</table>
+    <!-- SPEECH BIOMARKERS -->
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">
+            🗣️ Speech Biomarkers
+        </h2>
 
-<!-- RISK FLAGS -->
-{% if risks %}
-<div class="notice">
-<b>⚠ Observed Behavioral Risk Indicators</b>
-<ul>
-{% for r in risks %}
-    <li>{{ r }}</li>
-{% endfor %}
-</ul>
-</div>
-{% endif %}
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-gray-900 rounded-lg p-4">
+                <p class="text-sm text-gray-400">Speech Rate</p>
+                <p class="text-lg font-semibold text-blue-300">{{ speech.speech_rate }}</p>
+            </div>
 
-<!-- EMOTION TIMELINE GRAPH -->
-<h3>📊 Emotion Confidence Timeline</h3>
-<canvas id="timelineChart"></canvas>
+            <div class="bg-gray-900 rounded-lg p-4">
+                <p class="text-sm text-gray-400">Silence Ratio</p>
+                <p class="text-lg font-semibold text-yellow-300">{{ speech.silence_ratio }}</p>
+            </div>
 
-<!-- TREND -->
-<h3>📈 Longitudinal Trend</h3>
-<div class="notice">
-{{ trend }}
-</div>
+            <div class="bg-gray-900 rounded-lg p-4">
+                <p class="text-sm text-gray-400">RMS Energy</p>
+                <p class="text-lg font-semibold text-green-300">{{ speech.rms_energy }}</p>
+            </div>
+
+            <div class="bg-gray-900 rounded-lg p-4">
+                <p class="text-sm text-gray-400">Pitch Variability</p>
+                <p class="text-lg font-semibold text-purple-300">{{ speech.pitch_variability }}</p>
+            </div>
+        </div>
+    </div>
 
 
-<h3>🧾 Clinical Session Summary (AI-Generated)</h3>
-<div class="notice" style="white-space:pre-line;">
+    {% if risks %}
+    <div class="bg-red-900/30 border border-red-700 rounded-xl p-6 mb-10">
+        <h2 class="text-xl font-semibold text-red-300 mb-3">
+            ⚠ Behavioral Risk Indicators
+        </h2>
+        <ul class="list-disc list-inside space-y-1 text-red-200">
+            {% for r in risks %}
+            <li>{{ r }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-10">
+        <h2 class="text-xl font-semibold text-white mb-3">
+            📈 Longitudinal Trend
+        </h2>
+        <p class="text-gray-300 leading-relaxed">
+            {{ trend }}
+        </p>
+    </div>
+
+
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-10">
+        <h2 class="text-xl font-semibold text-white mb-3">
+            🧾 Clinical Session Summary
+        </h2>
+        <pre class="whitespace-pre-wrap text-gray-300 text-sm">
 {{ clinical_summary }}
+        </pre>
+    </div>
+
+
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">
+            📅 Patient History (Last 5 Sessions)
+        </h2>
+
+        {% if history %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-900">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-gray-400">Date</th>
+                        <th class="px-4 py-2 text-left text-gray-400">Emotion</th>
+                        <th class="px-4 py-2 text-left text-gray-400">Confidence</th>
+                        <th class="px-4 py-2 text-left text-gray-400">Instability</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in history %}
+                    <tr class="border-t border-gray-700">
+                        <td class="px-4 py-2">{{ h.date }}</td>
+                        <td class="px-4 py-2">{{ h.emotion }}</td>
+                        <td class="px-4 py-2">{{ h.confidence }}</td>
+                        <td class="px-4 py-2">{{ h.instability }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-400">No previous sessions available.</p>
+        {% endif %}
+    </div>
+
+
+    <a href="/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold">
+        ⬅ Back to Dashboard
+    </a>
+
 </div>
 
-<!-- PATIENT HISTORY -->
-<h3>📅 Patient Session History (Last 5 Sessions)</h3>
 
-{% if history %}
-<table>
-    <tr>
-        <th>Date</th>
-        <th>Emotion</th>
-        <th>Confidence</th>
-        <th>Instability</th>
-    </tr>
-    {% for h in history %}
-    <tr>
-        <td>{{ h.date }}</td>
-        <td>{{ h.emotion }}</td>
-        <td>{{ h.confidence }}</td>
-        <td>{{ h.instability }}</td>
-    </tr>
-    {% endfor %}
-</table>
-{% else %}
-<div class="notice">No previous sessions found for this patient.</div>
-{% endif %}
-
-<div class="notice">
-<b>Disclaimer:</b> This system provides behavioral indicators only and does not diagnose mental illness.
-</div>
-
-<a href="/" class="back-btn">⬅ Back to Upload</a>
-
-</div>
-
-<!-- CHART SCRIPT -->
 <script>
-const timeline = {{ emotion_timeline | tojson | safe }};
+    const timeline = {{ emotion_timeline | tojson | safe }};
 
-if (timeline && timeline.length > 0) {
-    const labels = timeline.map(t => `${t.start}-${t.end}s`);
-    const confidences = timeline.map(t => t.confidence);
+    if (timeline && timeline.length > 0) {
+        const labels = timeline.map(t => `${t.start}-${t.end}s`);
+        const confidences = timeline.map(t => t.confidence);
 
-    const ctx = document.getElementById("timelineChart").getContext("2d");
-
-    new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: labels,
-            datasets: [{
-                data: confidences,
-                borderColor: "#60a5fa",
-                borderWidth: 2,
-                tension: 0.3,
-                pointRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    min: 0,
-                    max: 1
-                }
+        new Chart(document.getElementById("timelineChart"), {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: confidences,
+                    borderColor: "#60a5fa",
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 4
+                }]
             },
-            plugins: {
-                legend: { display: false }
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { min: 0, max: 1 } }
             }
-        }
-    });
-}
+        });
+    }
 </script>
 
 </body>
 </html>
+
